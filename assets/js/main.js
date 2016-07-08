@@ -54,8 +54,7 @@ titleScreen.prototype = {
 		this.style = { font: "20px Arial", fill: "#fff", tabs: 100 };
 		game.add.text(40, game.height - 60, "SPACEBAR to jump", this.style);
 		
-		var playButton = game.add.button(game.width/2, game.height/2,
-		"playbutton", this.startGame);
+		var playButton = game.add.button(game.width/2, game.height/2, "playbutton", this.startGame);
 		playButton.anchor.set(0.5);
 		var tween = game.add.tween(playButton).to({
 		width: 280,
@@ -84,7 +83,7 @@ playGame.prototype = {
 		game.load.image('groundStatic', 'assets/images/ground_static.png');
 		game.load.image('groundDinamic', 'assets/images/ground_static.png');
 		game.load.image('kaktus', 'assets/images/kaktus.png');
-		game.load.spritesheet('chicken', 'assets/images/chicken.png', 70, 90, 2);
+		game.load.spritesheet('chicken', 'assets/images/chicken3.png', 70, 90, 3);
 	},
 	create: function(){
 		game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -118,7 +117,8 @@ playGame.prototype = {
 		this.chicken.body.gravity.y = 300;
 		this.chicken.body.collideWorldBounds = true;
 
-		this.walk = this.chicken.animations.add('walk');
+		this.chicken.animations.add('walk', [0,1]);
+		this.chicken.animations.add('jump', [2]);
 		
 		this.kaktusGroup = game.add.group();
 		this.addKaktus(this.kaktusGroup);
@@ -126,16 +126,30 @@ playGame.prototype = {
 		game.input.keyboard.addKeyCapture([
 			Phaser.Keyboard.SPACEBAR
 		]);
+		
+		this.chicken.animations.play('walk', 5, true);
+		this.chicken.jump = false;
 	},
 	update: function(){
 		game.physics.arcade.collide(this.chicken, this.groundStatic);
 		game.physics.arcade.collide(this.kaktusGroup, this.grounds);
 		
 		this.grounds.forEach(this.runAnimGround, this);
-		this.chicken.animations.play('walk', 5, true);
+		
+		if ( this.chicken.jump ) {
+			this.chicken.animations.play('jump');
+			// когда персонаж коснулся земли, опять запускаем анимацию
+			if (this.chicken.body.y == (400 - this.chicken.height)) {
+				this.chicken.jump = false;
+			}
+		} else {
+			this.chicken.animations.play('walk');
+		}
 		
 		if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) && this.chicken.body.touching.down){
 			this.chicken.body.velocity.y = -300;
+		    this.chicken.animations.stop();
+		    this.chicken.jump = true;			
 		}
 		
 		game.physics.arcade.collide(this.kaktusGroup, this.chicken, function(s, b){
@@ -151,7 +165,7 @@ playGame.prototype = {
 		  
 		score++;
 		textScore.text = "SCORE: " + score;
-	},		
+	},
 	runAnimGround: function(ground){
 		if (ground.x < -game.world.width) {
 			ground.x = game.world.width;
