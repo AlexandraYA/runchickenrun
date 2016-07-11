@@ -52,8 +52,12 @@ titleScreen.prototype = {
 		this.style = { font: "32px Arial", fill: "#fff", tabs: 100 };
 		game.add.text(game.width/2 - 128, 60, "Run Chicken Run", this.style);
 		this.style = { font: "20px Arial", fill: "#fff", tabs: 100 };
-		game.add.text(40, game.height - 60, "SPACEBAR to jump", this.style);
-		
+		game.add.text(40, game.height - 60, "SPACEBAR or mouse click to jump", this.style);
+
+		// Game start by press Enter
+		this.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+        this.enter.onDown.add(this.startGame, this);
+
 		var playButton = game.add.button(game.width/2, game.height/2, "playbutton", this.startGame);
 		playButton.anchor.set(0.5);
 		var tween = game.add.tween(playButton).to({
@@ -123,12 +127,13 @@ playGame.prototype = {
 		this.kaktusGroup = game.add.group();
 		this.addKaktus(this.kaktusGroup);
 		
-		game.input.keyboard.addKeyCapture([
-			Phaser.Keyboard.SPACEBAR
-		]);
-		
 		this.chicken.animations.play('walk', 5, true);
 		this.chicken.jump = false;
+		
+		// Click mouse or SPACEBAR to jump
+		game.input.onDown.add(this.actionJump, this);		
+		this.spacebar = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+        this.spacebar.onDown.add(this.actionJump, this);
 	},
 	update: function(){
 		game.physics.arcade.collide(this.chicken, this.groundStatic);
@@ -146,12 +151,6 @@ playGame.prototype = {
 			this.chicken.animations.play('walk');
 		}
 		
-		if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR) && this.chicken.body.touching.down){
-			this.chicken.body.velocity.y = -300;
-		    this.chicken.animations.stop();
-		    this.chicken.jump = true;			
-		}
-		
 		game.physics.arcade.collide(this.kaktusGroup, this.chicken, function(s, b){
 			var destroyTween = game.add.tween(s).to({
 				x: s.x + 300,
@@ -165,6 +164,13 @@ playGame.prototype = {
 		  
 		score++;
 		textScore.text = "SCORE: " + score;
+	},
+	actionJump: function(){
+		if (this.chicken.body.touching.down){
+			this.chicken.body.velocity.y = -300;
+			this.chicken.animations.stop();
+			this.chicken.jump = true;
+		}
 	},
 	runAnimGround: function(ground){
 		if (ground.x < -game.world.width) {
