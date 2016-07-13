@@ -13,6 +13,7 @@ window.onload = function(){
 	game.state.add("Boot", boot);
 	game.state.add("Preload", preload);
 	game.state.add("TitleScreen", titleScreen);
+	game.state.add("HowToPlay", howToPlay);
 	game.state.add("PlayGame", playGame);
 	game.state.add("GameOverScreen", gameOverScreen)
 	game.state.start("Boot");
@@ -51,20 +52,95 @@ titleScreen.prototype = {
 		
 		this.style = { font: "32px Arial", fill: "#fff", tabs: 100 };
 		game.add.text(game.width/2 - 128, 60, "Run Chicken Run", this.style);
-		this.style = { font: "20px Arial", fill: "#fff", tabs: 100 };
-		game.add.text(40, game.height - 60, "SPACEBAR or mouse click to jump", this.style);
 
 		// Game start by press Enter
 		this.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
-        this.enter.onDown.add(this.startGame, this);
+        this.enter.onDown.add(this.howToPlay, this);
 
-		var playButton = game.add.button(game.width/2, game.height/2, "playbutton", this.startGame);
+		var playButton = game.add.button(game.width/2, game.height/2, "playbutton", this.howToPlay);
 		playButton.anchor.set(0.5);
 		var tween = game.add.tween(playButton).to({
 		width: 280,
 		height:100
 		}, 1000, "Linear", true, 500, -1);
 		tween.yoyo(true);
+	},
+	howToPlay: function(){
+		game.state.start("HowToPlay");
+	}
+}
+
+var howToPlay = function(game){};
+howToPlay.prototype = {
+	preload: function(){
+		game.load.image('kaktus', 'assets/images/kaktus.png');
+		game.load.spritesheet('chicken', 'assets/images/chicken3.png', 70, 90, 3);
+	},
+	create: function(){
+		game.stage.backgroundColor = bgColors[game.rnd.between(0, bgColors.length - 1)];
+		
+		this.style = { font: "36px Arial", fill: "#fff", tabs: 100 };
+		this.title = game.add.text(game.width/2, 30, "CONTROLS", this.style);
+		this.title.anchor.set(0.5);
+		
+		this.style = { font: "16px Arial", fill: "#fff", tabs: 60 };
+		this.descr = game.add.text(game.width/2, 70, "SPACEBAR or mouse click to jump", this.style);
+		this.descr.anchor.set(0.5);
+		
+		
+		this.ground = 220;
+		this.chicken = game.add.sprite(game.width/2, this.ground, 'chicken');
+		this.chicken.scale.set(0.6);
+		this.chicken.anchor.set(0.5, 1);
+		this.chicken.animations.add('walk', [0,1]);
+		this.chicken.animations.add('jump', [2]);
+		this.chicken.animations.play('walk', 5, true);		
+		
+		this.kaktus = game.add.sprite(game.width/2 + 100, this.ground, 'kaktus');
+		this.kaktus.scale.set(0.4);
+		this.kaktus.anchor.set(0, 1);		
+		var horizontalKaktusTween = game.add.tween(this.kaktus).to({
+               x: game.width/2 - 100
+          }, 2000, "Linear", true, 0, -1);
+		
+		this.chickenUp = false;
+		this.chickenDown = false;
+		this.chickenTimes = 11;
+		this.chickenTimesCnt = 1;		
+		
+		this.chickenJump = game.time.events.loop(60, function(){			
+			if ( this.kaktus.x <= (game.width/2 + 50) && (this.kaktus.x > game.width/2) && !this.chickenUp && !this.chickenDown ) {				
+				this.chickenUp = true;
+				this.chicken.animations.stop();
+				this.chicken.animations.play('jump');
+			} 
+			
+			if (this.chickenUp) {				
+				if ( this.chickenTimesCnt < this.chickenTimes ) {
+					this.chicken.y -= 5;					
+					this.chickenTimesCnt++;					
+				} else {
+					this.chickenUp = false;
+					this.chickenDown = true;
+				}				
+			} else if (this.chickenDown) {			
+				if ( this.chickenTimesCnt > 1 ) {
+					this.chicken.y += 5;
+					this.chickenTimesCnt--;					
+				} else {
+					this.chickenDown = false;
+					this.chicken.animations.stop();
+					this.chicken.animations.play('walk');
+				}				
+			}			
+		}, this);
+
+		// Game start by press Enter
+		this.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+        this.enter.onDown.add(this.startGame, this);
+
+		var playButton = game.add.button(game.width/2, game.height - 100, "playbutton", this.startGame);
+		playButton.anchor.set(0.5);
 	},
 	startGame: function(){
 		game.state.start("PlayGame");
@@ -85,9 +161,7 @@ playGame.prototype = {
 	preload: function(){
 		game.load.image('cloud', 'assets/images/cloud.png');
 		game.load.image('groundStatic', 'assets/images/ground_static.png');
-		game.load.image('groundDinamic', 'assets/images/ground_static.png');
-		game.load.image('kaktus', 'assets/images/kaktus.png');
-		game.load.spritesheet('chicken', 'assets/images/chicken3.png', 70, 90, 3);
+		game.load.image('groundDinamic', 'assets/images/ground_static.png');		
 	},
 	create: function(){
 		game.physics.startSystem(Phaser.Physics.ARCADE);
